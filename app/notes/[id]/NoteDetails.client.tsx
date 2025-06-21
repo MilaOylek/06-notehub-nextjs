@@ -19,6 +19,7 @@ const NoteDetailsClient = () => {
     queryKey: ['note', noteId],
     queryFn: () => fetchNoteById(noteId),
     enabled: !!noteId,
+    refetchOnMount: false,
   });
 
   if (isLoading) return <p>Loading...</p>;
@@ -33,7 +34,9 @@ const NoteDetailsClient = () => {
           <button className={css.editBtn}>Edit note</button>
         </div>
         <p className={css.content}>{note.content}</p>
-        <p className={css.date}>Created: {new Date(note.createdDate).toLocaleDateString()}</p>
+        <p className={css.date}>
+          Created: {new Date(note.createdAt).toLocaleDateString()}
+        </p>
       </div>
     </div>
   );

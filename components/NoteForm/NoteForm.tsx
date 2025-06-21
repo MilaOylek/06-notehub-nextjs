@@ -1,47 +1,64 @@
+'use client';
+
 import {
   Formik,
   Field,
   Form,
   ErrorMessage as FormikErrorMessage,
-} from "formik";
-import * as Yup from "yup";
-import { type Tag } from "@/types/note";
-// import { type CreateNotePayload, type Tag } from "@/types/note";
+} from 'formik';
+import * as Yup from 'yup';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { createNote } from '@/lib/api';
+import { type Tag, type CreateNotePayload } from '@/types/note';
 
-import styles from "./NoteForm.module.css";
+import styles from './NoteForm.module.css';
 
-interface NoteFormProps {
+export interface NoteFormProps {
   onCreateNote: (title: string, content: string, tag?: Tag) => void;
-  isCreating?: boolean;
+  isCreating: boolean;
   onClose: () => void;
 }
 
 const noteSchema = Yup.object().shape({
   title: Yup.string()
-    .min(3, "Title must be at least 3 characters")
-    .max(50, "Title must be at most 50 characters")
-    .required("Title is required"),
-  content: Yup.string().max(500, "Content must be at most 500 characters"),
+    .min(3, 'Title must be at least 3 characters')
+    .max(50, 'Title must be at most 50 characters')
+    .required('Title is required'),
+  content: Yup.string().max(500, 'Content must be at most 500 characters'),
   tag: Yup.string<Tag>()
     .oneOf(
-      ["Todo", "Work", "Personal", "Meeting", "Shopping"],
-      "Invalid tag selected"
+      ['Todo', 'Work', 'Personal', 'Meeting', 'Shopping'],
+      'Invalid tag selected'
     )
-    .required("Tag is required"),
+    .required('Tag is required'),
 });
 
-function NoteForm({ onCreateNote, isCreating = false, onClose }: NoteFormProps) {
+function NoteForm({ onClose }: NoteFormProps) {
+  const queryClient = useQueryClient();
+
+  const { mutate, isPending, isError, error } = useMutation({
+    mutationFn: (payload: CreateNotePayload) => createNote(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notes'] });
+      onClose();
+    },
+  });
+
   const handleSubmit = async (values: {
     title: string;
     content: string;
     tag: Tag;
   }) => {
-    onCreateNote(values.title, values.content, values.tag);
+    mutate({
+      title: values.title,
+      content: values.content,
+      tag: values.tag,
+    });
   };
 
   return (
     <Formik
-      initialValues={{ title: "", content: "", tag: "Todo" }}
+      initialValues={{ title: '', content: '', tag: 'Todo' }}
       validationSchema={noteSchema}
       onSubmit={handleSubmit}
     >
@@ -99,18 +116,24 @@ function NoteForm({ onCreateNote, isCreating = false, onClose }: NoteFormProps) 
               type="button"
               className={styles.cancelButton}
               onClick={onClose}
-              disabled={isSubmitting || isCreating}
+              disabled={isSubmitting || isPending}
             >
               Cancel
             </button>
             <button
               type="submit"
               className={styles.submitButton}
-              disabled={isSubmitting || isCreating}
+              disabled={isSubmitting || isPending}
             >
-              {isCreating ? "Creating..." : "Create note"}
+              {isPending ? 'Creating...' : 'Create note'}
             </button>
           </div>
+
+          {isError && (
+            <div className={styles.errorMessage}>
+              Failed to create note: {error?.message}
+            </div>
+          )}
         </Form>
       )}
     </Formik>
