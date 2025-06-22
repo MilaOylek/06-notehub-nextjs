@@ -7,9 +7,7 @@ import {
   ErrorMessage as FormikErrorMessage,
 } from 'formik';
 import * as Yup from 'yup';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { createNote } from '@/lib/api';
-import { type Tag, type CreateNotePayload } from '@/types/note';
+import { type Tag } from '@/types/note';
 
 import styles from './NoteForm.module.css';
 
@@ -21,39 +19,25 @@ export interface NoteFormProps {
 
 const noteSchema = Yup.object().shape({
   title: Yup.string()
-    .min(3, 'Title must be at least 3 characters')
-    .max(50, 'Title must be at most 50 characters')
-    .required('Title is required'),
-  content: Yup.string().max(500, 'Content must be at most 500 characters'),
+    .min(3, 'Назва має містити щонайменше 3 символи')
+    .max(50, 'Назва має містити щонайбільше 50 символів')
+    .required('Назва є обов’язковою'),
+  content: Yup.string().max(500, 'Вміст має містити щонайбільше 500 символів'),
   tag: Yup.string<Tag>()
     .oneOf(
       ['Todo', 'Work', 'Personal', 'Meeting', 'Shopping'],
-      'Invalid tag selected'
+      'Вибрано недійсний тег'
     )
-    .required('Tag is required'),
+    .required('Тег є обов’язковим'),
 });
 
-function NoteForm({ onClose }: NoteFormProps) {
-  const queryClient = useQueryClient();
-
-  const { mutate, isPending, isError, error } = useMutation({
-    mutationFn: (payload: CreateNotePayload) => createNote(payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notes'] });
-      onClose();
-    },
-  });
-
+function NoteForm({ onCreateNote, isCreating, onClose }: NoteFormProps) {
   const handleSubmit = async (values: {
     title: string;
     content: string;
     tag: Tag;
   }) => {
-    mutate({
-      title: values.title,
-      content: values.content,
-      tag: values.tag,
-    });
+    onCreateNote(values.title, values.content, values.tag);
   };
 
   return (
@@ -65,7 +49,7 @@ function NoteForm({ onClose }: NoteFormProps) {
       {({ isSubmitting }) => (
         <Form className={styles.form}>
           <div className={styles.formGroup}>
-            <label htmlFor="title">Title</label>
+            <label htmlFor="title">Назва</label>
             <Field
               id="title"
               type="text"
@@ -80,7 +64,7 @@ function NoteForm({ onClose }: NoteFormProps) {
           </div>
 
           <div className={styles.formGroup}>
-            <label htmlFor="content">Content</label>
+            <label htmlFor="content">Вміст</label>
             <Field
               as="textarea"
               id="content"
@@ -96,7 +80,7 @@ function NoteForm({ onClose }: NoteFormProps) {
           </div>
 
           <div className={styles.formGroup}>
-            <label htmlFor="tag">Tag</label>
+            <label htmlFor="tag">Тег</label>
             <Field as="select" id="tag" name="tag" className={styles.select}>
               <option value="Todo">Todo</option>
               <option value="Work">Work</option>
@@ -116,24 +100,18 @@ function NoteForm({ onClose }: NoteFormProps) {
               type="button"
               className={styles.cancelButton}
               onClick={onClose}
-              disabled={isSubmitting || isPending}
+              disabled={isSubmitting || isCreating}
             >
-              Cancel
+              Скасувати
             </button>
             <button
               type="submit"
               className={styles.submitButton}
-              disabled={isSubmitting || isPending}
+              disabled={isSubmitting || isCreating}
             >
-              {isPending ? 'Creating...' : 'Create note'}
+              {isCreating ? 'Створення...' : 'Створити нотатку'}
             </button>
           </div>
-
-          {isError && (
-            <div className={styles.errorMessage}>
-              Failed to create note: {error?.message}
-            </div>
-          )}
         </Form>
       )}
     </Formik>
