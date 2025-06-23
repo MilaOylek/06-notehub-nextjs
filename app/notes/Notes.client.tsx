@@ -28,21 +28,26 @@ const NotesClient = ({ initialData }: NotesClientProps) => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const notesPerPage = 10;
 
-  useEffect(() => {
+ useEffect(() => {
     const handler = setTimeout(() => {
-      setDebouncedSearch(searchQuery);
-      setCurrentPage(1);
+        console.log("NotesClient: Debounced search updated to:", searchQuery);
+        setDebouncedSearch(searchQuery);
+        setCurrentPage(1);
     }, 500);
 
     return () => clearTimeout(handler);
-  }, [searchQuery]);
+}, [searchQuery]); 
 
-  const { data, isLoading, isError, error } = useQuery({
-    queryKey: ['notes', debouncedSearch, currentPage],
-    queryFn: () => fetchNotes(currentPage, notesPerPage, debouncedSearch),
-    initialData: initialData,
-    placeholderData: previousData => previousData,
-  });
+const { data, isLoading, isError, error } = useQuery({
+  queryKey: ['notes', debouncedSearch, currentPage],
+  queryFn: () => {
+    console.log("NotesClient: Fetching notes with search:", debouncedSearch);
+    return fetchNotes(currentPage, notesPerPage, debouncedSearch);
+  },
+  // initialData: initialData,
+  // placeholderData: previousData => previousData,
+});
+
 
   const deleteNoteMutation = useMutation({
     mutationFn: (id: number) => deleteNote(id),
@@ -62,6 +67,7 @@ const handleDeleteNote = (id: number) => {
   };
 
   const handleSearchChange = (value: string) => {
+     console.log("NotesClient: Search query updated to (raw):", value);
     setSearchQuery(value);
   };
 

@@ -13,6 +13,7 @@ function SearchBox({
   placeholder = "Search notes",
 }: SearchBoxProps) {
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+      console.log("SearchBox: Input changed to:", event.target.value);
     onChange(event.target.value);
   };
 
