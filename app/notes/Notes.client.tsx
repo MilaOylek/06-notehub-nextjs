@@ -21,7 +21,7 @@ type NotesClientProps = {
 
 const NotesClient = ({ initialData }: NotesClientProps) => {
   const queryClient = useQueryClient();
-
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(initialData.currentPage || 1);
@@ -41,29 +41,32 @@ const NotesClient = ({ initialData }: NotesClientProps) => {
     queryKey: ['notes', debouncedSearch, currentPage],
     queryFn: () => fetchNotes(currentPage, notesPerPage, debouncedSearch),
     initialData: initialData,
+    placeholderData: previousData => previousData,
   });
 
   const deleteNoteMutation = useMutation({
-    mutationFn: deleteNote,
+    mutationFn: (id: number) => deleteNote(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notes'] });
     },
-    onError: err => {
+    onError: (err) => {
       console.error('Error deleting note:', err);
-    },
+      alert('Failed to delete note. Please try again.');
+    }
   });
 
-  const handleDeleteNote = (id: number) => {
-    const confirmed = window.confirm(
-      'Are you sure you want to delete this note?'
-    );
-    if (confirmed) {
+const handleDeleteNote = (id: number) => {
+    if (confirm('Are you sure you want to delete this note?')) {
       deleteNoteMutation.mutate(id);
     }
   };
 
-  const handlePageChange = (selectedItem: { selected: number }) => {
-    setCurrentPage(selectedItem.selected + 1);
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+  };
+
+  const handlePageChange = (selectedPage: number) => {
+    setCurrentPage(selectedPage + 1);
   };
 
   useEffect(() => {
@@ -79,7 +82,7 @@ const NotesClient = ({ initialData }: NotesClientProps) => {
 
   return (
     <div className={css.container}>
-      <SearchBox value={searchQuery} onChange={setSearchQuery} />
+      <SearchBox value={searchQuery} onChange={handleSearchChange} />
 
       <button
         className={css.openFormButton}
@@ -89,13 +92,11 @@ const NotesClient = ({ initialData }: NotesClientProps) => {
         Create note
       </button>
 
-      {isFormOpen && (
-        <NoteModal onClose={() => setIsFormOpen(false)} />
-      )}
+      {isFormOpen && <NoteModal onClose={() => setIsFormOpen(false)} />}
 
-      {deleteNoteMutation.isError && (
+  {deleteNoteMutation.isError && (
         <p className={css.messageError}>
-          Failed to delete note: {deleteNoteMutation.error?.message}
+          Failed to delete note: {deleteNoteMutation.error?.message || 'Unknown error'}
         </p>
       )}
 
@@ -115,9 +116,7 @@ const NotesClient = ({ initialData }: NotesClientProps) => {
           />
         </>
       ) : (
-        <p className={css.noNotesMessage}>
-        No notes found. Create a new one!
-        </p>
+        <p className={css.noNotesMessage}>No notes found. Create a new one!</p>
       )}
     </div>
   );

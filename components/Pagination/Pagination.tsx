@@ -1,12 +1,12 @@
 'use client';
 
-import ReactPaginate from "react-paginate";
-import styles from "./Pagination.module.css";
+import ReactPaginate from 'react-paginate';
+import styles from './Pagination.module.css';
 
 interface PaginationProps {
   currentPage: number;
   totalPages: number;
-  onPageChange: (selectedItem: { selected: number }) => void;
+  onPageChange: (page: number) => void;
 }
 
 function Pagination({
@@ -15,7 +15,7 @@ function Pagination({
   onPageChange,
 }: PaginationProps) {
   const handlePageClick = (selectedItem: { selected: number }) => {
-    onPageChange(selectedItem);
+    onPageChange(selectedItem.selected);
   };
 
   return (

@@ -1,4 +1,3 @@
-// components/NoteForm/NoteForm.tsx
 import axios from "axios";
 import {
   Formik,

@@ -76,13 +76,13 @@
   text-overflow: ellipsis;
 }
 
-.link {
+
+.detailsLink {
   align-self: flex-end;
   padding: 6px 12px;
   font-size: 14px;
   color: #fff;
-  background-color: #0d6efd; /* синій колір */
-  border: none;
+  background-color: #0d6efd;
   border-radius: 4px;
   cursor: pointer;
   text-decoration: none;

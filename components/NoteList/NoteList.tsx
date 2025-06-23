@@ -6,10 +6,9 @@ import styles from './NoteList.module.css';
 
 interface NoteListProps {
   notes: Note[];
-  onDeleteNote: (id: number) => void;
+   onDeleteNote: (id: number) => void;
   isDeleting: boolean;
 }
-
 function NoteList({ notes, onDeleteNote, isDeleting }: NoteListProps) {
   const handleDelete = (id: number) => {
     onDeleteNote(id);
@@ -26,12 +25,15 @@ function NoteList({ notes, onDeleteNote, isDeleting }: NoteListProps) {
             <p className={styles.content}>{note.content}</p>
             <div className={styles.footer}>
               {note.tag && <span className={styles.tag}>{note.tag}</span>}
+              <Link href={`/notes/${note.id}`} className={styles.detailsLink}>
+                View details
+              </Link>
               <button
                 className={styles.button}
                 onClick={() => handleDelete(note.id)}
                 disabled={isDeleting}
               >
-                Видалити
+                Delete
               </button>
             </div>
           </li>
