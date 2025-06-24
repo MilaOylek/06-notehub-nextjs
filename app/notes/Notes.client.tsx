@@ -26,50 +26,35 @@ const NotesClient = ({ initialData }: NotesClientProps) => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const notesPerPage = 10;
 
-  // Використовуємо useRef для відстеження, чи була гідратація.
-  // Це дозволить нам керувати initialData лише при першому рендері.
   const isHydrationComplete = useRef(false);
 
   useEffect(() => {
     const handler = setTimeout(() => {
       console.log("NotesClient: Debounced search updated to:", searchQuery);
       setDebouncedSearch(searchQuery);
-      setCurrentPage(1); // При зміні пошуку завжди повертаємося на першу сторінку
+      setCurrentPage(1);
     }, 500);
 
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
-  // Якщо `initialData` вже була використана для гідратації, більше не передаємо її
-  // як опцію `initialData` до `useQuery`.
-  // Замість цього, ми дозволяємо TanStack Query керувати кешом самостійно.
   const queryOptions = {
     queryKey: ['notes', debouncedSearch, currentPage],
-    queryFn: async () => { // queryFn має бути async
+    queryFn: async () => { 
       console.log("NotesClient: Executing queryFn for queryKey:", ['notes', debouncedSearch, currentPage]);
       const data = await fetchNotes(currentPage, notesPerPage, debouncedSearch);
-      // Після успішного завантаження/гідратації, відзначаємо, що гідратація завершена
-      if (!isHydrationComplete.current) {
+        if (!isHydrationComplete.current) {
         isHydrationComplete.current = true;
       }
       return data;
     },
-    // `initialData` використовуємо лише якщо гідратація ще не відбулася
-    // і ми хочемо, щоб TanStack Query заповнив кеш з цих пропсів.
-    // Якщо `isHydrationComplete.current` є true, initialData не передається,
-    // і TanStack Query використовує свої механізми кешування та `queryFn`.
+    
     initialData: isHydrationComplete.current ? undefined : initialData,
-    // placeholderData для плавного переходу, коли дані завантажуються
+   
     placeholderData: (previousData: NotesClientProps['initialData'] | undefined) => {
-      // Якщо є попередні дані в кеші, використовуємо їх.
-      // Інакше, якщо це перший рендер і initialData доступна, використовуємо initialData.
+ 
       return previousData ?? (isHydrationComplete.current ? undefined : initialData);
     },
-    // staleTime: Infinity, // Якщо ви хочете, щоб дані ніколи не були застарілими
-    // gcTime: Infinity, // Якщо ви хочете, щоб дані ніколи не видалялися з кешу
-    // Важливо: onSuccess зазвичай не використовується безпосередньо в об'єкті опцій useQuery
-    // коли initialData може бути undefined.
-    // Логіка isHydrationComplete тепер вмонтована в queryFn.
   };
 
   const { data, isLoading, isError, error } = useQuery(queryOptions);
