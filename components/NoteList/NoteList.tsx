@@ -3,15 +3,33 @@
 import Link from 'next/link';
 import { type Note } from '@/types/note';
 import styles from './NoteList.module.css';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { deleteNote } from '@/lib/api';
 
 interface NoteListProps {
   notes: Note[];
-   onDeleteNote: (id: number) => void;
-  isDeleting: boolean;
 }
-function NoteList({ notes, onDeleteNote, isDeleting }: NoteListProps) {
+
+function NoteList({ notes }: NoteListProps) {
+  const queryClient = useQueryClient();
+
+  const { mutate, isPending } = useMutation({
+    mutationFn: (id: number) => {
+      return deleteNote(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notes'] });
+    },
+    onError: (error) => {
+        console.error('Failed to delete note:', error);
+      alert('Failed to delete note. Please try again.');
+    },
+  });
+
   const handleDelete = (id: number) => {
-    onDeleteNote(id);
+    if (confirm('Are you sure you want to delete this note?')) {
+      mutate(id);
+    }
   };
 
   return (
@@ -31,7 +49,7 @@ function NoteList({ notes, onDeleteNote, isDeleting }: NoteListProps) {
               <button
                 className={styles.button}
                 onClick={() => handleDelete(note.id)}
-                disabled={isDeleting}
+                disabled={isPending}
               >
                 Delete
               </button>

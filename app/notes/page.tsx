@@ -14,26 +14,41 @@ type NotesData = {
   currentPage: number;
 };
 
-export default async function NotesPage() {
+export default async function NotesPage({
+  searchParams,
+}: {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  searchParams: any; // <--- ЗАСТОСУЙТЕ ЦЕЙ КОМЕНТАР ESLINT ТА 'any' ТИП
+}) {
+  const { page: pageParam, search: searchParam } = searchParams;
+
   const queryClient = new QueryClient();
-  const page = 1;
   const notesPerPage = 10;
-  const search = '';
+
+  const currentPage = parseInt(pageParam || '1', 10);
+  const searchQuery = searchParam || '';
 
   await queryClient.prefetchQuery({
-    queryKey: ['notes', search, page],
-    queryFn: () => fetchNotes(page, notesPerPage, search),
+    queryKey: ['notes', searchQuery, currentPage],
+    queryFn: () => fetchNotes(currentPage, notesPerPage, searchQuery),
   });
 
   const initialData = queryClient.getQueryData([
     'notes',
-    search,
-    page,
+    searchQuery,
+    currentPage,
   ]) as NotesData;
+
+  const finalInitialData: NotesData = initialData || {
+    notes: [],
+    page: currentPage,
+    totalPages: 1,
+    currentPage: currentPage,
+  };
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <NotesClient initialData={initialData} />
+      <NotesClient initialData={finalInitialData} />
     </HydrationBoundary>
   );
 }
