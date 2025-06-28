@@ -15,6 +15,7 @@ export default async function NoteDetailsPage({
 }) {
   const resolvedParams = await params;
   const noteId = parseInt(resolvedParams.id, 10);
+  if (isNaN(noteId)) throw new Error("Invalid note ID");
 
   const queryClient = new QueryClient();
 

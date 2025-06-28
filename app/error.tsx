@@ -14,9 +14,12 @@ export default function Error({
   }, [error]);
 
   return (
-    <div>
+    <div style={{ padding: 20, backgroundColor: '#ffe6e6', color: '#900', borderRadius: 8 }}>
       <h2>Something went wrong globally!</h2>
-      <button onClick={() => reset()}>Try again</button>
+      <p>{error.message}</p>
+      <button onClick={() => reset()} style={{ marginTop: 10, padding: '8px 16px' }}>
+        Try again
+      </button>
     </div>
   );
 }

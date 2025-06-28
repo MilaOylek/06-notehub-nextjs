@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { fetchNoteById } from '@/lib/api';
@@ -8,26 +8,37 @@ import css from './NoteDetails.module.css';
 import type { Note } from '@/types/note';
 
 const NoteDetailsClient = () => {
-  const params = useParams();
-  const noteId = parseInt(params.id as string, 10);
+  const { id } = useParams() as { id?: string };
+  const noteId = useMemo(() => (id ? parseInt(id, 10) : NaN), [id]);
 
-  const {
-    data: note,
-    isLoading,
-    isError,
-    error,
-  } = useQuery<Note | null, Error>({
+  const { data: note, isLoading, isError, error } = useQuery<Note, Error>({
     queryKey: ['note', noteId],
     queryFn: () => fetchNoteById(noteId),
-    enabled: !!noteId,
+    enabled: !isNaN(noteId),
     refetchOnMount: false,
   });
 
-  if (isLoading) return <p className={css.message}>Loading, please wait...</p>; 
-  if (isError) return <p className={css.messageError}>Could not fetch note details. {error?.message}</p>;
-  if (!note) return <p className={css.message}>Note not found.</p>;
+  if (isNaN(noteId)) {
+    return <p className={css.messageError}>Invalid note ID.</p>;
+  }
 
-  const formattedDate = note.createdAt 
+  if (isLoading) {
+    return <p className={css.message}>Loading, please wait...</p>;
+  }
+
+  if (isError) {
+    return (
+      <p className={css.messageError}>
+        Could not fetch note details. {error?.message}
+      </p>
+    );
+  }
+
+  if (!note) {
+    return <p className={css.message}>Note not found.</p>;
+  }
+
+  const formattedDate = note.createdAt
     ? new Date(note.createdAt).toLocaleDateString(undefined, {
         year: 'numeric',
         month: 'long',

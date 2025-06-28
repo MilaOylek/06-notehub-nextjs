@@ -20,4 +20,3 @@ export default function TanStackProvider({ children }: { children: React.ReactNo
     </QueryClientProvider>
   );
 }
-

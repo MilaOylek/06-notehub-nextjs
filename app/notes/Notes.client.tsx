@@ -1,115 +1,80 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect, useRef } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { fetchNotes } from '@/lib/api';
-import NoteList from '@/components/NoteList/NoteList';
-import SearchBox from '@/components/SearchBox/SearchBox';
-import Pagination from '@/components/Pagination/Pagination';
-import NoteModal from '@/components/NoteModal/NoteModal';
-import css from './notes.module.css';
-import type { Note } from '@/types/note';
+import { useState, useEffect, useCallback } from "react";
+import { useDebounce } from "use-debounce";
+import { useQuery } from "@tanstack/react-query";
+import { fetchNotes, type FetchNotesResponse } from "@/lib/api";
+import NoteList from "@/components/NoteList/NoteList";
+import Pagination from "@/components/Pagination/Pagination";
+import SearchBox from "@/components/SearchBox/SearchBox";
+import NoteModal from "@/components/NoteModal/NoteModal";
+import LoadingSpinner from "@/components/LoadingSpinner/LoadingSpinner";
+import ErrorMessage from "@/components/ErrorMessage/ErrorMessage";
+import styles from "./notes.module.css";
 
-type NotesClientProps = {
-  initialData: {
-    notes: Note[];
-    page: number;
-    totalPages: number;
-    currentPage: number;
-  };
-};
+const PER_PAGE = 12;
 
-const NotesClient = ({ initialData }: NotesClientProps) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [currentPage, setCurrentPage] = useState(initialData.currentPage || 1);
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const notesPerPage = 10;
+interface NotesClientProps {
+  initialData?: FetchNotesResponse;
+}
 
-  const isHydrationComplete = useRef(false);
+export default function Notes({ initialData }: NotesClientProps) {
+  const [page, setPage] = useState(1);
+  const [query, setQuery] = useState("");
+  const [debouncedQuery] = useDebounce(query, 500);
 
   useEffect(() => {
-    const handler = setTimeout(() => {
-      console.log("NotesClient: Debounced search updated to:", searchQuery);
-      setDebouncedSearch(searchQuery);
-      setCurrentPage(1);
-    }, 500);
+    setPage(1);
+  }, [debouncedQuery]);
 
-    return () => clearTimeout(handler);
-  }, [searchQuery]);
+  const [isModal, setIsModal] = useState(false);
 
-  const queryOptions = {
-    queryKey: ['notes', debouncedSearch, currentPage],
-    queryFn: async () => { 
-      console.log("NotesClient: Executing queryFn for queryKey:", ['notes', debouncedSearch, currentPage]);
-      const data = await fetchNotes(currentPage, notesPerPage, debouncedSearch);
-        if (!isHydrationComplete.current) {
-        isHydrationComplete.current = true;
-      }
-      return data;
-    },
-    
-    initialData: isHydrationComplete.current ? undefined : initialData,
-   
-    placeholderData: (previousData: NotesClientProps['initialData'] | undefined) => {
- 
-      return previousData ?? (isHydrationComplete.current ? undefined : initialData);
-    },
+  const handleCreateNote = () => {
+    setIsModal(true);
+  };
+  const closeModal = () => {
+    setIsModal(false);
   };
 
-  const { data, isLoading, isError, error } = useQuery(queryOptions);
+  const { data, isError, isLoading, isFetching, error } = useQuery({
+    queryKey: ["notes", debouncedQuery, page],
+    queryFn: () => fetchNotes({ page, perPage: PER_PAGE, search: debouncedQuery }),
+ placeholderData: initialData,
+  refetchOnMount: false,
+    staleTime: 5 * 60 * 1000,
+  });
 
-  const handleSearchChange = (value: string) => {
-    console.log("NotesClient: Search query updated to (raw):", value);
-    setSearchQuery(value);
-  };
+  const handlePageChange = useCallback((page: number) => {
+  setPage(page);
+}, []);
 
-  const handlePageChange = (selectedPage: number) => {
-    console.log("NotesClient: handlePageChange received 0-indexed page:", selectedPage);
-    setCurrentPage(selectedPage + 1);
-    console.log("NotesClient: New 1-indexed currentPage state set to:", selectedPage + 1);
-  };
-
-  useEffect(() => {
-    console.log('Current page state changed to:', currentPage);
-  }, [currentPage]);
-
-  if (isLoading) return <p className={css.message}>Loading notes...</p>;
-  if (isError) return <p className={css.messageError}>Error: {error?.message}</p>;
-
-  const notesToDisplay = data?.notes || [];
-  const totalPages = data?.totalPages || 1;
+  const totalPages = data ? data.totalPages ?? Math.ceil(data.total / PER_PAGE) : 0;
 
   return (
-    <div className={css.container}>
-      <SearchBox value={searchQuery} onChange={handleSearchChange} />
+    <div className={styles.app}>
+      <header className={styles.toolbar}>
+        <SearchBox value={query} onChange={(query) => setQuery(query)} />
+        {data && totalPages > 1 && (
+          <Pagination
+            totalPages={totalPages}
+            currentPage={page}
+            onPageChange={handlePageChange}
+          />
+        )}
+        <button onClick={handleCreateNote} className={styles.button}>
+          Create note +
+        </button>
+      </header>
 
-      <button
-        className={css.openFormButton}
-        onClick={() => setIsFormOpen(true)}
-        disabled={isFormOpen}
-      >
-        Create note
-      </button>
+      {isModal && <NoteModal onClose={closeModal} />}
 
-      {isFormOpen && <NoteModal onClose={() => setIsFormOpen(false)} />}
+      {(isLoading || isFetching) && <LoadingSpinner />}
 
-      {notesToDisplay.length > 0 ? (
-        <>
-          {totalPages > 1 && (
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={handlePageChange}
-            />
-          )}
-          <NoteList notes={notesToDisplay} />
-        </>
-      ) : (
-        <p className={css.noNotesMessage}>No notes found. Create a new one!</p>
-      )}
+      {isError && <ErrorMessage message={error?.message || "Unknown error"} />}
+{!isError && data?.notes?.length === 0 && <ErrorMessage message="No notes found." />}
+
+      {data?.notes && <NoteList notes={data.notes} />}
     </div>
   );
-};
+}
 
-export default NotesClient;

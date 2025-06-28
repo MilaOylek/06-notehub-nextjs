@@ -15,7 +15,7 @@ function Pagination({
   onPageChange,
 }: PaginationProps) {
   const handlePageClick = (selectedItem: { selected: number }) => {
-    onPageChange(selectedItem.selected);
+    onPageChange(selectedItem.selected + 1);
   };
 
   return (
